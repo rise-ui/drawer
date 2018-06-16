@@ -1,0 +1,20 @@
+[package]
+name = "drawer"
+version = "0.1.0"
+authors = ["Anton Shramko <antonshramko@yandex.ru>"]
+
+[dependencies]
+webrender = { rev = "2e381e0325f367429810099d5abf76e674f697ed", git = "https://github.com/servo/webrender" }
+yoga = { git = "https://github.com/rise-ui/yoga-rs", features = ["serde_support"] }
+jss = { path = "../jss-rs" }
+euclid = "0.17.3"
+rand = "0.5"
+
+[dev-dependencies]
+ordered-float = "0.5.0"
+env_logger = "0.5"
+app_units = "0.6"
+mozangle = "0.1"
+glutin = "0.15"
+winit = "0.13"
+gleam = "0.5"
