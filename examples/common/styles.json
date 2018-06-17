@@ -1,0 +1,23 @@
+{
+  "window": {
+    "background": "#F5F5F5",
+    "border_bottom_right_radius": 40,
+    "border_bottom_left_radius": 10,
+    "border_top_right_radius": 10,
+    "border_top_left_radius": 40
+  },
+  "boxone": {
+    "background": "#03A9F4",
+    "border_bottom_right_radius": 40,
+    "border_bottom_left_radius": 40,
+    "border_top_right_radius": 40,
+    "border_top_left_radius": 40
+  },
+  "boxtwo": {
+    "background": "#673AB7",
+    "border_bottom_right_radius": 10,
+    "border_bottom_left_radius": 10,
+    "border_top_right_radius": 10,
+    "border_top_left_radius": 10
+  }
+}

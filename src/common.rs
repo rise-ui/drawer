@@ -8,7 +8,7 @@ pub trait Draw {
 
 #[derive(Clone, Debug)]
 pub struct DrawingProperties {
-  pub apperance: Vec<Apperance>,
+  pub apperance: Apperance,
   pub layout: Layout,
 }
 

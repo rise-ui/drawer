@@ -33,11 +33,22 @@ impl Draw for DrawingNode {
     let content_bounds = (0., 0.).by(self.style.layout.width(), self.style.layout.height());
     let content_primitive = LayoutPrimitiveInfo::new(content_bounds.clone());
 
-    let clip = ComplexClipRegion::new(content_bounds.clone(), BorderRadius::uniform(20.), ClipMode::Clip);
-    let clip_id = builder.define_clip(content_bounds.clone(), vec![clip], None);
+    let border_radius: BorderRadius = {
+      if let Some(border_radius) = &self.style.apperance.border_radius {
+        BorderRadius::from(border_radius.clone())
+      } else {
+        BorderRadius::zero()
+      }
+    };
 
+    let clip = ComplexClipRegion::new(content_bounds.clone(), border_radius, ClipMode::Clip);
+    let clip_id = builder.define_clip(content_bounds.clone(), vec![clip], None);
     builder.push_clip_id(clip_id);
-    builder.push_rect(&content_primitive, ColorF::new(1., 1., 1., 1.));
+
+    if let Some(background) = &self.style.apperance.background {
+      let sizes = (self.style.layout.width(), self.style.layout.height());
+      builder = background.push_to_builder(builder, &content_primitive, sizes);
+    }
 
     builder
   }

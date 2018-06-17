@@ -7,6 +7,10 @@ extern crate winit;
 extern crate drawer;
 extern crate yoga;
 extern crate ordered_float;
+extern crate jss;
+
+#[macro_use]
+extern crate lazy_static;
 
 #[path = "common/boilerplate.rs"]
 mod boilerplate;
@@ -14,6 +18,11 @@ mod boilerplate;
 use ordered_float::OrderedFloat;
 use boilerplate::Example;
 use webrender::api::*;
+use std::collections::HashMap;
+
+lazy_static! {
+  static ref STYLES: jss::Stylesheet = jss::parse_json_stylesheet(include_str!("common/styles.json")).unwrap();
+}
 
 fn main() {
   let mut app = App {};
@@ -21,6 +30,16 @@ fn main() {
 }
 
 struct App {}
+
+fn get_default_apperance(name: &str) -> jss::Apperance {
+  use jss::PrepareStyleExt;
+
+  let style = STYLES.get(&name.to_string()).unwrap().clone();
+  let style = style.default.unwrap();
+
+  let styles = style.get_prepared_styles();
+  styles.0.clone()
+}
 
 impl Example for App {
   // Make this the only example to test all shaders for compile errors.
@@ -35,16 +54,20 @@ impl Example for App {
     _pipeline_id: PipelineId,
     _document_id: DocumentId,
   ) {
+    let window_apperance = get_default_apperance("window");
+    let box_one_apperance = get_default_apperance("boxone");
+    let box_two_apperance = get_default_apperance("boxtwo");
+
     let root = drawer::DrawingNode {
       style: drawer::DrawingProperties {
-        apperance: vec![],
+        apperance: window_apperance,
         layout: yoga::Layout::new(0.0.into(), 0.0.into(), 0.0.into(), 0.0.into(), 400.0.into(), 400.0.into()),
       },
 
       children: vec![
         drawer::DrawingNode {
           style: drawer::DrawingProperties {
-            apperance: vec![],
+            apperance: box_one_apperance,
             layout: yoga::Layout::new(25.0.into(), 0.0.into(), 25.0.into(), 0.0.into(), 100.0.into(), 100.0.into()),
           },
 
@@ -52,7 +75,7 @@ impl Example for App {
         },
         drawer::DrawingNode {
           style: drawer::DrawingProperties {
-            apperance: vec![],
+            apperance: box_two_apperance,
             layout: yoga::Layout::new(150.0.into(), 0.0.into(), 25.0.into(), 0.0.into(), 100.0.into(), 100.0.into()),
           },
 
