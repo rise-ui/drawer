@@ -55,8 +55,8 @@ impl Example for App {
     _document_id: DocumentId,
   ) {
     let window_apperance = get_default_apperance("window");
-    let box_one_apperance = get_default_apperance("boxone");
-    let box_two_apperance = get_default_apperance("boxtwo");
+    let box_one_apperance = get_default_apperance("box_one");
+    let box_two_apperance = get_default_apperance("box_two");
 
     let root = drawer::DrawingNode {
       style: drawer::DrawingProperties {

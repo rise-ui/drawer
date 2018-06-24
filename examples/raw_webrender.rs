@@ -12,7 +12,7 @@ extern crate winit;
 #[path = "common/boilerplate.rs"]
 mod boilerplate;
 
-use boilerplate::Example;
+use boilerplate::{Example, make_rotation, make_skew, HandyDandyRectBuilder};
 use webrender::api::*;
 
 fn main() {
@@ -58,9 +58,21 @@ impl Example for App {
     builder.push_clip_id(id);
 
     /******** Content Zone of First Stacking Context ********/
-
     // Push rectangle layer inside clip zone
     builder.push_rect(&window_layer, ColorF::new(1., 1., 1., 1.));
+
+    // Transformation
+    let rotation_transform = make_rotation(&LayoutPoint::new(50., 50.), 45., 0.0, 0.0, 1.0);
+    // create clip zone of transform container
+
+    let boxes = (50, 50).by(100, 100);
+    let boxes_primitive = LayoutPrimitiveInfo::new(boxes.clone());
+
+    let transformed_frame =
+      builder.push_reference_frame(&boxes_primitive, Some(PropertyBinding::Binding(PropertyBindingKey::new(42), rotation_transform)), None);
+    builder.push_clip_id(transformed_frame);
+
+    builder.push_stacking_context(&boxes_primitive, None, TransformStyle::Flat, MixBlendMode::Normal, Vec::new(), GlyphRasterSpace::Screen);
 
     let stops = vec![
       GradientStop {
@@ -73,10 +85,11 @@ impl Example for App {
       },
     ];
 
-    let gradient = builder.create_gradient(LayoutPoint::new(0.0, 0.0), LayoutPoint::new(400., 400.), stops, ExtendMode::Clamp);
+    let gradient = builder.create_gradient(LayoutPoint::new(0.0, 0.0), LayoutPoint::new(100., 100.), stops, ExtendMode::Clamp);
+    builder.push_gradient(&boxes_primitive, gradient, LayoutSize::new(100.0, 100.0), LayoutSize::new(0.0, 0.0));
 
-    builder.push_gradient(&window_layer, gradient, LayoutSize::new(400.0, 400.0), LayoutSize::new(0.0, 0.0));
-
+    builder.pop_clip_id();
+    builder.pop_stacking_context();
     /*******************************************************/
 
     // Close clip zone

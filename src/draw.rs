@@ -1,4 +1,5 @@
 use common::{
+  PropertiesCollection,
   DrawingProperties,
   layout_into_rect,
   RectBuilder,
@@ -24,7 +25,7 @@ pub struct DrawingNode {
 }
 
 impl Draw for DrawingNode {
-  fn draw(&self, mut builder: DisplayListBuilder) -> DisplayListBuilder {
+  fn draw(&self, mut builder: DisplayListBuilder, mut properties: PropertiesCollection) -> (DisplayListBuilder, PropertiesCollection) {
     let container_bounds = layout_into_rect(&self.style.layout);
     let primitive = LayoutPrimitiveInfo::new(container_bounds.clone());
 
@@ -50,6 +51,6 @@ impl Draw for DrawingNode {
       builder = background.push_to_builder(builder, &content_primitive, sizes);
     }
 
-    builder
+    (builder, properties)
   }
 }

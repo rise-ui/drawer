@@ -6,12 +6,39 @@ extern crate env_logger;
 extern crate euclid;
 
 use gleam::gl;
+use euclid::{Angle, TypedSize2D};
 use glutin::{self, GlContext};
 use std::env;
 use std::path::PathBuf;
 use webrender;
 use winit;
 use webrender::api::*;
+use std;
+
+// Rotate around `axis` by `degrees` angle
+pub fn make_rotation(origin: &LayoutPoint, degrees: f32, axis_x: f32, axis_y: f32, axis_z: f32) -> LayoutTransform {
+  let pre_transform = LayoutTransform::create_translation(origin.x, origin.y, 0.0);
+  let post_transform = LayoutTransform::create_translation(-origin.x, -origin.y, -0.0);
+
+  let theta = 2.0f32 * std::f32::consts::PI - degrees.to_radians();
+  let transform = LayoutTransform::identity().pre_rotate(axis_x, axis_y, axis_z, Angle::radians(theta));
+
+  pre_transform.pre_mul(&transform).pre_mul(&post_transform)
+}
+
+pub fn make_perspective(origin: LayoutPoint, perspective: f32) -> LayoutTransform {
+  let pre_transform = LayoutTransform::create_translation(origin.x, origin.y, 0.0);
+  let post_transform = LayoutTransform::create_translation(-origin.x, -origin.y, -0.0);
+  let transform = LayoutTransform::create_perspective(perspective);
+  pre_transform.pre_mul(&transform).pre_mul(&post_transform)
+}
+
+// Create a skew matrix, specified in degrees.
+pub fn make_skew(skew_x: f32, skew_y: f32) -> LayoutTransform {
+  let alpha = Angle::radians(skew_x.to_radians());
+  let beta = Angle::radians(skew_y.to_radians());
+  LayoutTransform::create_skew(alpha, beta)
+}
 
 struct Notifier {
   events_proxy: winit::EventsLoopProxy,
