@@ -22,6 +22,11 @@ use webrender::api::{
 pub struct DrawingNode {
   pub style: DrawingProperties,
   pub children: Vec<DrawingNode>,
+  pub tag: String,
+}
+
+impl DrawingNode {
+  pub fn new()
 }
 
 impl Draw for DrawingNode {
