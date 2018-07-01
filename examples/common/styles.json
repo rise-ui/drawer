@@ -32,7 +32,7 @@
     "border_top_right_radius": 40,
     "border_top_left_radius": 40,
     "transform": [
-      "rotate(45deg)"
+      "rotate(10deg)"
     ]
   },
   "box_two": {
