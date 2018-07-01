@@ -14,14 +14,12 @@ extern crate lazy_static;
 
 #[path = "common/boilerplate.rs"]
 mod boilerplate;
-
-use ordered_float::OrderedFloat;
 use boilerplate::Example;
 use webrender::api::*;
-use std::collections::HashMap;
 
 lazy_static! {
-  static ref STYLES: jss::Stylesheet = jss::parse_json_stylesheet(include_str!("common/styles.json")).unwrap();
+  static ref STYLES: jss::Stylesheet =
+    jss::parse_json_stylesheet(include_str!("common/styles.json")).unwrap();
 }
 
 fn main() {
@@ -54,39 +52,54 @@ impl Example for App {
     _pipeline_id: PipelineId,
     _document_id: DocumentId,
   ) {
-    let window_apperance = get_default_apperance("window");
     let box_one_apperance = get_default_apperance("box_one");
     let box_two_apperance = get_default_apperance("box_two");
+    let window_apperance = get_default_apperance("window");
 
-    let root = drawer::DrawingNode {
-      style: drawer::DrawingProperties {
-        apperance: window_apperance,
+    let mut root = drawer::DrawingNode::new(
+      drawer::DrawingProperties {
         layout: yoga::Layout::new(0.0.into(), 0.0.into(), 0.0.into(), 0.0.into(), 400.0.into(), 400.0.into()),
+        apperance: window_apperance,
       },
+      None,
+    );
 
-      children: vec![
-        drawer::DrawingNode {
-          style: drawer::DrawingProperties {
-            apperance: box_one_apperance,
-            layout: yoga::Layout::new(25.0.into(), 0.0.into(), 25.0.into(), 0.0.into(), 100.0.into(), 100.0.into()),
-          },
+    let children_one = drawer::DrawingNode::new(
+      drawer::DrawingProperties {
+        layout: yoga::Layout::new(
+          25.0.into(),
+          0.0.into(),
+          25.0.into(),
+          0.0.into(),
+          100.0.into(),
+          100.0.into(),
+        ),
+        apperance: box_one_apperance,
+      },
+      None,
+    );
 
-          children: vec![],
-        },
-        drawer::DrawingNode {
-          style: drawer::DrawingProperties {
-            apperance: box_two_apperance,
-            layout: yoga::Layout::new(150.0.into(), 0.0.into(), 25.0.into(), 0.0.into(), 100.0.into(), 100.0.into()),
-          },
+    let children_two = drawer::DrawingNode::new(
+      drawer::DrawingProperties {
+        layout: yoga::Layout::new(
+          150.0.into(),
+          0.0.into(),
+          25.0.into(),
+          0.0.into(),
+          100.0.into(),
+          100.0.into(),
+        ),
+        apperance: box_two_apperance,
+      },
+      None,
+    );
 
-          children: vec![],
-        },
-      ],
-    };
+    root.push(children_one);
+    root.push(children_two);
 
-    *builder = drawer::render(root, builder.clone());
-    // builder.print_display_list();
-    // println!("\n\n\n");
+    let mut drawer_rise = drawer::Drawer::new(root);
+    let result = drawer_rise.render(builder.clone());
+    *builder = result.0;
   }
 
   fn on_event(&mut self, event: winit::WindowEvent, api: &RenderApi, document_id: DocumentId) -> bool {

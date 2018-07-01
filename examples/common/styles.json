@@ -30,7 +30,10 @@
     "border_bottom_right_radius": 40,
     "border_bottom_left_radius": 40,
     "border_top_right_radius": 40,
-    "border_top_left_radius": 40
+    "border_top_left_radius": 40,
+    "transform": [
+      "rotate(45deg)"
+    ]
   },
   "box_two": {
     "background": "#673AB7",

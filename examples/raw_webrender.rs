@@ -41,7 +41,14 @@ impl Example for App {
     let window_layer = LayoutPrimitiveInfo::new(window_bounds);
 
     // Create new context zone for drawing
-    builder.push_stacking_context(&window_layer, None, TransformStyle::Flat, MixBlendMode::Normal, Vec::new(), GlyphRasterSpace::Screen);
+    builder.push_stacking_context(
+      &window_layer,
+      None,
+      TransformStyle::Flat,
+      MixBlendMode::Normal,
+      Vec::new(),
+      GlyphRasterSpace::Screen,
+    );
 
     // Create zone for clipping content inside stacking context
     let complex = ComplexClipRegion::new(
@@ -68,11 +75,21 @@ impl Example for App {
     let boxes = (50, 50).by(100, 100);
     let boxes_primitive = LayoutPrimitiveInfo::new(boxes.clone());
 
-    let transformed_frame =
-      builder.push_reference_frame(&boxes_primitive, Some(PropertyBinding::Binding(PropertyBindingKey::new(42), rotation_transform)), None);
+    let transformed_frame = builder.push_reference_frame(
+      &boxes_primitive,
+      Some(PropertyBinding::Binding(PropertyBindingKey::new(42), rotation_transform)),
+      None,
+    );
     builder.push_clip_id(transformed_frame);
 
-    builder.push_stacking_context(&boxes_primitive, None, TransformStyle::Flat, MixBlendMode::Normal, Vec::new(), GlyphRasterSpace::Screen);
+    builder.push_stacking_context(
+      &boxes_primitive,
+      None,
+      TransformStyle::Flat,
+      MixBlendMode::Normal,
+      Vec::new(),
+      GlyphRasterSpace::Screen,
+    );
 
     let stops = vec![
       GradientStop {
@@ -85,8 +102,18 @@ impl Example for App {
       },
     ];
 
-    let gradient = builder.create_gradient(LayoutPoint::new(0.0, 0.0), LayoutPoint::new(100., 100.), stops, ExtendMode::Clamp);
-    builder.push_gradient(&boxes_primitive, gradient, LayoutSize::new(100.0, 100.0), LayoutSize::new(0.0, 0.0));
+    let gradient = builder.create_gradient(
+      LayoutPoint::new(0.0, 0.0),
+      LayoutPoint::new(100., 100.),
+      stops,
+      ExtendMode::Clamp,
+    );
+    builder.push_gradient(
+      &boxes_primitive,
+      gradient,
+      LayoutSize::new(100.0, 100.0),
+      LayoutSize::new(0.0, 0.0),
+    );
 
     builder.pop_clip_id();
     builder.pop_stacking_context();

@@ -14,20 +14,32 @@ fn builder_node(
 
   for node in root.children.iter() {
     // Draw child
-    let drawed_result = builder_node(node, builder, properties);
-    properties = drawed_result.1;
-    builder = drawed_result.0;
+    let result = builder_node(node, builder, properties);
+    properties = result.1;
+    builder = result.0;
   }
 
   // Close context
-  builder = close_node_context(builder);
+  let (builder, properties) = close_node_context(&root, builder, properties);
   (builder, properties)
 }
 
-fn close_node_context(mut builder: DisplayListBuilder) -> DisplayListBuilder {
-  builder.pop_stacking_context();
+fn close_node_context(
+  node: &DrawingNode,
+  mut builder: DisplayListBuilder,
+  properties: PropertiesCollection,
+) -> (DisplayListBuilder, PropertiesCollection) {
+  // Close content clip zone (aka border-radius)
   builder.pop_clip_id();
-  builder
+  // Pop of context node
+  builder.pop_stacking_context();
+
+  // Close clip id if found transform for container
+  if properties.contains_key(&node.tag) {
+    builder.pop_clip_id();
+  }
+
+  (builder, properties)
 }
 
 pub struct Drawer {

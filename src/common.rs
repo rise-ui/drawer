@@ -5,15 +5,20 @@ use yoga::Layout;
 use webrender::api::{
   DisplayListBuilder,
   PropertyBindingKey,
+  LayoutTransform,
   LayoutPoint,
   LayoutRect,
   LayoutSize,
 };
 
-pub type PropertiesCollection = HashMap<String, PropertyBindingKey<f32>>;
+pub type PropertiesCollection = HashMap<String, PropertyBindingKey<LayoutTransform>>;
 
 pub trait Draw {
-  fn draw(&self, mut builder: DisplayListBuilder, mut properties: PropertiesCollection) -> (DisplayListBuilder, PropertiesCollection);
+  fn draw(
+    &self,
+    mut builder: DisplayListBuilder,
+    mut properties: PropertiesCollection,
+  ) -> (DisplayListBuilder, PropertiesCollection);
 }
 
 #[derive(Clone, Debug)]
