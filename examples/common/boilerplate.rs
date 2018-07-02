@@ -16,7 +16,13 @@ use webrender::api::*;
 use std;
 
 // Rotate around `axis` by `degrees` angle
-pub fn make_rotation(origin: &LayoutPoint, degrees: f32, axis_x: f32, axis_y: f32, axis_z: f32) -> LayoutTransform {
+pub fn make_rotation(
+  origin: &LayoutPoint,
+  degrees: f32,
+  axis_x: f32,
+  axis_y: f32,
+  axis_z: f32,
+) -> LayoutTransform {
   let pre_transform = LayoutTransform::create_translation(origin.x, origin.y, 0.0);
   let post_transform = LayoutTransform::create_translation(-origin.x, -origin.y, -0.0);
 
@@ -64,7 +70,13 @@ impl RenderNotifier for Notifier {
     let _ = self.events_proxy.wakeup();
   }
 
-  fn new_frame_ready(&self, _: DocumentId, _scrolled: bool, _composite_needed: bool) {
+  fn new_frame_ready(
+    &self,
+    _: DocumentId,
+    _scrolled: bool,
+    _composite_needed: bool,
+    _render_time: Option<u64>,
+  ) {
     self.wake_up();
   }
 }
@@ -76,7 +88,10 @@ pub trait HandyDandyRectBuilder {
 
 impl HandyDandyRectBuilder for (i32, i32) {
   fn to(&self, x2: i32, y2: i32) -> LayoutRect {
-    LayoutRect::new(LayoutPoint::new(self.0 as f32, self.1 as f32), LayoutSize::new((x2 - self.0) as f32, (y2 - self.1) as f32))
+    LayoutRect::new(
+      LayoutPoint::new(self.0 as f32, self.1 as f32),
+      LayoutSize::new((x2 - self.0) as f32, (y2 - self.1) as f32),
+    )
   }
 
   fn by(&self, w: i32, h: i32) -> LayoutRect {
@@ -140,8 +155,12 @@ pub fn main_wrapper<E: Example>(example: &mut E, options: Option<webrender::Rend
   }
 
   let gl = match window.get_api() {
-    glutin::Api::OpenGl => unsafe { gl::GlFns::load_with(|symbol| window.get_proc_address(symbol) as *const _) },
-    glutin::Api::OpenGlEs => unsafe { gl::GlesFns::load_with(|symbol| window.get_proc_address(symbol) as *const _) },
+    glutin::Api::OpenGl => unsafe {
+      gl::GlFns::load_with(|symbol| window.get_proc_address(symbol) as *const _)
+    },
+    glutin::Api::OpenGlEs => unsafe {
+      gl::GlesFns::load_with(|symbol| window.get_proc_address(symbol) as *const _)
+    },
     glutin::Api::WebGl => unimplemented!(),
   };
 
@@ -220,15 +239,19 @@ pub fn main_wrapper<E: Example>(example: &mut E, options: Option<webrender::Rend
         winit::VirtualKeyCode::O => renderer.toggle_debug_flags(webrender::DebugFlags::RENDER_TARGET_DBG),
         winit::VirtualKeyCode::I => renderer.toggle_debug_flags(webrender::DebugFlags::TEXTURE_CACHE_DBG),
         winit::VirtualKeyCode::S => renderer.toggle_debug_flags(webrender::DebugFlags::COMPACT_PROFILER),
-        winit::VirtualKeyCode::Q => {
-          renderer.toggle_debug_flags(webrender::DebugFlags::GPU_TIME_QUERIES | webrender::DebugFlags::GPU_SAMPLE_QUERIES)
-        }
-        winit::VirtualKeyCode::Key1 => {
-          txn.set_window_parameters(framebuffer_size, DeviceUintRect::new(DeviceUintPoint::zero(), framebuffer_size), 1.0)
-        }
-        winit::VirtualKeyCode::Key2 => {
-          txn.set_window_parameters(framebuffer_size, DeviceUintRect::new(DeviceUintPoint::zero(), framebuffer_size), 2.0)
-        }
+        winit::VirtualKeyCode::Q => renderer.toggle_debug_flags(
+          webrender::DebugFlags::GPU_TIME_QUERIES | webrender::DebugFlags::GPU_SAMPLE_QUERIES,
+        ),
+        winit::VirtualKeyCode::Key1 => txn.set_window_parameters(
+          framebuffer_size,
+          DeviceUintRect::new(DeviceUintPoint::zero(), framebuffer_size),
+          1.0,
+        ),
+        winit::VirtualKeyCode::Key2 => txn.set_window_parameters(
+          framebuffer_size,
+          DeviceUintRect::new(DeviceUintPoint::zero(), framebuffer_size),
+          2.0,
+        ),
         winit::VirtualKeyCode::M => api.notify_memory_pressure(),
         #[cfg(feature = "capture")]
         winit::VirtualKeyCode::C => {
