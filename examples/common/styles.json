@@ -32,11 +32,18 @@
     "border_top_right_radius": 40,
     "border_top_left_radius": 40,
     "transform": [
-      "rotate(10deg)"
+      "rotate(4deg)"
     ]
   },
   "box_two": {
     "background": "#673AB7",
+    "border_bottom_right_radius": 10,
+    "border_bottom_left_radius": 10,
+    "border_top_right_radius": 10,
+    "border_top_left_radius": 10
+  },
+  "box_image": {
+    "background": "#ecf0f1",
     "border_bottom_right_radius": 10,
     "border_bottom_left_radius": 10,
     "border_top_right_radius": 10,

@@ -8,6 +8,9 @@ webrender = { rev = "c540acf0990f8a0cbf9429e7085c7cc3b6901add", git = "https://g
 yoga = { git = "https://github.com/rise-ui/yoga-rs", features = ["serde_support"] }
 jss = { git = "https://github.com/rise-ui/jss-rs" }
 # jss = { path = "../jss-rs" }
+resources = { git = "https://github.com/rise-ui/resources" }
+# resources = { path = "../resources" }
+enum_extract = "0.1"
 euclid = "0.17.3"
 rand = "0.5"
 
@@ -17,6 +20,6 @@ lazy_static = "1.0"
 env_logger = "0.5"
 app_units = "0.6"
 mozangle = "0.1"
-glutin = "0.15"
-winit = "0.13"
+glutin = "0.17"
+winit = "0.16"
 gleam = "0.5"

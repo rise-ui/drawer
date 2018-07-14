@@ -1,3 +1,5 @@
+use jss::properties::transforms_push_to_builder;
+use resources::images::ImageInfo;
 use utils::random_string;
 
 use common::{
@@ -13,33 +15,39 @@ use webrender::api::{
   DisplayListBuilder,
   ComplexClipRegion,
   GlyphRasterSpace,
+  ImageRendering,
   TransformStyle,
   MixBlendMode,
   BorderRadius,
+  LayoutSize,
+  AlphaType,
   ClipMode,
   ColorF,
 };
 
-use jss::properties::{
-  transforms_push_to_builder
-};
+#[derive(Clone, Debug)]
+pub enum NodeType {
+  Image(ImageInfo),
+  Text(()),
+  Div,
+}
 
 #[derive(Clone, Debug)]
 pub struct DrawingNode {
   pub children: Vec<DrawingNode>,
   pub style: DrawingProperties,
+  pub node_type: NodeType,
   pub tag: String,
 }
 
 impl DrawingNode {
-  pub fn new(style: DrawingProperties, tag: Option<String>) -> DrawingNode {
-    let tag = match tag {
-      None => random_string(10),
-      Some(name) => name,
-    };
+  pub fn new(style: DrawingProperties, tag: Option<String>, node_type: Option<NodeType>) -> DrawingNode {
+    let node_type = node_type.unwrap_or(NodeType::Div);
+    let tag = tag.unwrap_or(random_string(10));
 
     DrawingNode {
       children: vec![],
+      node_type,
       style,
       tag,
     }
@@ -62,6 +70,7 @@ impl Draw for DrawingNode {
     let container_size = (layout.width(), layout.height());
     let primitive = LayoutPrimitiveInfo::new(layout_into_rect(&layout));
 
+    // Get Transforms and clip that over stacking_context container
     let transforms = &apperance.transform.unwrap_or(Vec::new());
     let (mut builder, properties) = transforms_push_to_builder(
       &primitive,
@@ -81,6 +90,7 @@ impl Draw for DrawingNode {
       GlyphRasterSpace::Screen,
     );
 
+    // Define content (inside stacking_context) bounds
     let content_bounds = (0., 0.).by(layout.width(), layout.height());
     let content_primitive = LayoutPrimitiveInfo::new(content_bounds.clone());
 
@@ -92,13 +102,28 @@ impl Draw for DrawingNode {
       }
     };
 
+    // Content clip for border-radius
     let clip = ComplexClipRegion::new(content_bounds.clone(), border_radius, ClipMode::Clip);
     let clip_id = builder.define_clip(content_bounds.clone(), vec![clip], None);
     builder.push_clip_id(clip_id);
 
+    // Push background layer
     if let Some(background) = &self.style.apperance.background {
       let sizes = (self.style.layout.width(), self.style.layout.height());
       builder = background.push_to_builder(builder, &content_primitive, sizes);
+    }
+
+    // Push image
+    match &self.node_type {
+      NodeType::Image(image) => builder.push_image(
+        &content_primitive,
+        LayoutSize::new(layout.width(), layout.height()),
+        LayoutSize::zero(),
+        ImageRendering::Auto,
+        AlphaType::Alpha,
+        image.key,
+      ),
+      _ => {}
     }
 
     (builder, properties)

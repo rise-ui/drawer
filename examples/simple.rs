@@ -15,19 +15,13 @@ extern crate lazy_static;
 #[path = "common/boilerplate.rs"]
 mod boilerplate;
 use boilerplate::Example;
+use boilerplate::resources as assets;
 use webrender::api::*;
 
 lazy_static! {
   static ref STYLES: jss::Stylesheet =
     jss::parse_json_stylesheet(include_str!("common/styles.json")).unwrap();
 }
-
-fn main() {
-  let mut app = App {};
-  boilerplate::main_wrapper(&mut app, None);
-}
-
-struct App {}
 
 fn get_default_apperance(name: &str) -> jss::Apperance {
   use jss::PrepareStyleExt;
@@ -37,6 +31,10 @@ fn get_default_apperance(name: &str) -> jss::Apperance {
 
   let styles = style.get_prepared_styles();
   styles.0.clone()
+}
+
+struct App {
+  is_init: bool,
 }
 
 impl Example for App {
@@ -52,6 +50,8 @@ impl Example for App {
     _pipeline_id: PipelineId,
     _document_id: DocumentId,
   ) {
+    let mut resources = assets::resources();
+    let box_image_apperance = get_default_apperance("box_image");
     let box_one_apperance = get_default_apperance("box_one");
     let box_two_apperance = get_default_apperance("box_two");
     let window_apperance = get_default_apperance("window");
@@ -61,6 +61,7 @@ impl Example for App {
         layout: yoga::Layout::new(0.0.into(), 0.0.into(), 0.0.into(), 0.0.into(), 400.0.into(), 400.0.into()),
         apperance: window_apperance,
       },
+      None,
       None,
     );
 
@@ -77,6 +78,7 @@ impl Example for App {
         apperance: box_one_apperance,
       },
       None,
+      None,
     );
 
     let children_two = drawer::DrawingNode::new(
@@ -92,10 +94,31 @@ impl Example for App {
         apperance: box_two_apperance,
       },
       None,
+      None,
+    );
+
+    let image_source = assets::images::ImageSource::bundled("jerk");
+    let image = resources.image_loader.get_image(&image_source).unwrap();
+
+    let children_image = drawer::DrawingNode::new(
+      drawer::DrawingProperties {
+        layout: yoga::Layout::new(
+          270.0.into(),
+          0.0.into(),
+          25.0.into(),
+          0.0.into(),
+          100.0.into(),
+          100.0.into(),
+        ),
+        apperance: box_image_apperance,
+      },
+      None,
+      Some(drawer::NodeType::Image(image.clone())),
     );
 
     root.push(children_one);
     root.push(children_two);
+    root.push(children_image);
 
     let mut drawer_rise = drawer::Drawer::new(root);
     let result = drawer_rise.render(builder.clone());
@@ -112,4 +135,13 @@ impl Example for App {
 
     false
   }
+}
+
+fn main() {
+  boilerplate::main_wrapper(
+    &mut App {
+      is_init: false,
+    },
+    None,
+  );
 }

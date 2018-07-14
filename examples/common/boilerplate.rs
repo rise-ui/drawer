@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+pub extern crate resources;
 extern crate env_logger;
 extern crate euclid;
 
@@ -11,6 +12,7 @@ use glutin::{self, GlContext};
 use std::env;
 use std::path::PathBuf;
 use webrender;
+use winit::dpi::LogicalSize;
 use winit;
 use webrender::api::*;
 use std;
@@ -147,12 +149,14 @@ pub fn main_wrapper<E: Example>(example: &mut E, options: Option<webrender::Rend
     .with_multitouch()
     .with_decorations(false)
     .with_transparency(true)
-    .with_dimensions(E::WIDTH, E::HEIGHT);
+    .with_dimensions(LogicalSize::new(E::WIDTH as f64, E::HEIGHT as f64));
   let window = glutin::GlWindow::new(window_builder, context_builder, &events_loop).unwrap();
 
   unsafe {
     window.make_current().ok();
   }
+
+  // window.set_position();
 
   let gl = match window.get_api() {
     glutin::Api::OpenGl => unsafe {
@@ -166,7 +170,7 @@ pub fn main_wrapper<E: Example>(example: &mut E, options: Option<webrender::Rend
 
   println!("OpenGL version {}", gl.get_string(gl::VERSION));
   println!("Shader resource path: {:?}", res_path);
-  let device_pixel_ratio = window.hidpi_factor();
+  let device_pixel_ratio = window.get_hidpi_factor() as f32;
   println!("Device pixel ratio: {}", device_pixel_ratio);
 
   println!("Loading shaders...");
@@ -181,12 +185,21 @@ pub fn main_wrapper<E: Example>(example: &mut E, options: Option<webrender::Rend
   };
 
   let framebuffer_size = {
-    let (width, height) = window.get_inner_size().unwrap();
-    DeviceUintSize::new(width, height)
+    let inner_size = window.get_inner_size().unwrap();
+    DeviceUintSize::new(inner_size.width as u32, inner_size.height as u32)
   };
   let notifier = Box::new(Notifier::new(events_loop.create_proxy()));
   let (mut renderer, sender) = webrender::Renderer::new(gl.clone(), notifier, opts).unwrap();
   let api = sender.create_api();
+
+  resources::init_resources(sender);
+  // Initialize default images
+  // Resource can be load only after render context loaded, and not in main event loop
+  {
+    let jerk_image = include_bytes!("./rust.png").to_vec();
+    resources::resources().image_loader.load_image("jerk", jerk_image).unwrap();
+  }
+
   let document_id = api.add_document(framebuffer_size, 0);
 
   let (external, output) = example.get_image_handlers(&*gl);
