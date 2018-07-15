@@ -16,8 +16,8 @@ pub type PropertiesCollection = HashMap<String, PropertyBindingKey<LayoutTransfo
 pub trait Draw {
   fn draw(
     &self,
-    mut builder: DisplayListBuilder,
-    mut properties: PropertiesCollection,
+    builder: DisplayListBuilder,
+    properties: PropertiesCollection,
   ) -> (DisplayListBuilder, PropertiesCollection);
 }
 

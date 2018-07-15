@@ -62,8 +62,8 @@ impl DrawingNode {
 impl Draw for DrawingNode {
   fn draw(
     &self,
-    mut builder: DisplayListBuilder,
-    mut properties: PropertiesCollection,
+    builder: DisplayListBuilder,
+    properties: PropertiesCollection,
   ) -> (DisplayListBuilder, PropertiesCollection) {
     let apperance = self.style.apperance.clone();
     let layout = self.style.layout.clone();
