@@ -22,7 +22,8 @@ use webrender::api::{
   LayoutSize,
   AlphaType,
   ClipMode,
-  ColorF,
+  BorderDetails,
+  BorderWidths,
 };
 
 #[derive(Clone, Debug)]
@@ -103,7 +104,7 @@ impl Draw for DrawingNode {
     };
 
     // Content clip for border-radius
-    let clip = ComplexClipRegion::new(content_bounds.clone(), border_radius, ClipMode::Clip);
+    let clip = ComplexClipRegion::new(content_bounds.clone(), border_radius.clone(), ClipMode::Clip);
     let clip_id = builder.define_clip(content_bounds.clone(), vec![clip], None);
     builder.push_clip_id(clip_id);
 
@@ -124,6 +125,19 @@ impl Draw for DrawingNode {
         image.key,
       ),
       _ => {}
+    }
+
+    // Push Border
+    if let Some(border_styles) = &self.style.apperance.border_styles {
+      let mut border_details = BorderDetails::from(border_styles.clone());
+      let border_widths = BorderWidths::from(border_styles.clone());
+
+      // Modify rounded for border
+      if let Some(ref mut border) = extract!(BorderDetails::Normal(_), border_details) {
+        border.radius = border_radius.clone();
+      }
+
+      builder.push_border(&content_primitive, border_widths, border_details);
     }
 
     (builder, properties)

@@ -40,7 +40,10 @@
     "border_bottom_right_radius": 10,
     "border_bottom_left_radius": 10,
     "border_top_right_radius": 10,
-    "border_top_left_radius": 10
+    "border_top_left_radius": 10,
+    "border_top_color": "#FFFFFF",
+    "border_top_style": "solid",
+    "border_top": 10
   },
   "box_image": {
     "background": "#ecf0f1",

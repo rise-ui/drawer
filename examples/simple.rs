@@ -93,7 +93,7 @@ impl Example for App {
         ),
         apperance: box_two_apperance,
       },
-      None,
+      Some("children_two".to_string()),
       None,
     );
 
