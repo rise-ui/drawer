@@ -17,19 +17,19 @@ use webrender::api::{
   GlyphRasterSpace,
   ImageRendering,
   TransformStyle,
+  BorderDetails,
+  BorderWidths,
   MixBlendMode,
   BorderRadius,
   LayoutSize,
   AlphaType,
   ClipMode,
-  BorderDetails,
-  BorderWidths,
 };
 
 #[derive(Clone, Debug)]
 pub enum NodeType {
-  Image(ImageInfo),
   Text(()),
+  Image(ImageInfo),
   Div,
 }
 

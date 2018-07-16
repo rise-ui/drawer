@@ -4,16 +4,16 @@ version = "0.1.0"
 authors = ["Anton Shramko <antonshramko@yandex.ru>"]
 
 [dependencies]
+jss = { git = "https://github.com/rise-ui/jss-rs" }
+resources = { git = "https://github.com/rise-ui/resources" }
+
 webrender = { rev = "c540acf0990f8a0cbf9429e7085c7cc3b6901add", git = "https://github.com/servo/webrender" }
-yoga = { git = "https://github.com/rise-ui/yoga-rs", features = ["serde_support"] }
-# resources = { git = "https://github.com/rise-ui/resources" }
-# jss = { git = "https://github.com/rise-ui/jss-rs" }
+yoga = { version = "0.2", features = ["serde_support"] }
+# resources = { path = "../resources" }
+# jss = { path = "../jss-rs" }
 enum_extract = "0.1"
 euclid = "0.17.3"
 rand = "0.5"
-
-resources = { path = "../resources" }
-jss = { path = "../jss-rs" }
 
 [dev-dependencies]
 ordered-float = "0.5.0"
