@@ -1,147 +1,173 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 extern crate app_units;
 extern crate euclid;
 extern crate gleam;
 extern crate glutin;
-extern crate webrender;
-extern crate winit;
 extern crate drawer;
-extern crate yoga;
-extern crate ordered_float;
 extern crate jss;
+extern crate winit;
+extern crate yoga;
+extern crate dom;
 
-#[macro_use]
-extern crate lazy_static;
+use dom::events::*;
+use dom::node::*;
+use dom::traits::*;
+use dom::tree::*;
+use dom::types::*;
+use dom::setup::*;
+
+use jss::types::*;
+use yoga::Direction;
+
+use jss::webrender;
 
 #[path = "common/boilerplate.rs"]
 mod boilerplate;
-use boilerplate::Example;
-use boilerplate::resources as assets;
+
+use boilerplate::{Example, HandyDandyRectBuilder};
+use webrender::ShaderPrecacheFlags;
 use webrender::api::*;
-
-lazy_static! {
-  static ref STYLES: jss::Stylesheet =
-    jss::parse_json_stylesheet(include_str!("common/styles.json")).unwrap();
-}
-
-fn get_default_apperance(name: &str) -> jss::Apperance {
-  use jss::PrepareStyleExt;
-
-  let style = STYLES.get(&name.to_string()).unwrap().clone();
-  let style = style.default.unwrap();
-
-  let styles = style.get_prepared_styles();
-  styles.0.clone()
-}
+use euclid::vec2;
 
 struct App {
-  is_init: bool,
+    pub props: drawer::PropertiesCollection<DOMNodeId<BasicEvent>>,
+    pub dom: DOMTree<BasicEvent>,
 }
 
-impl Example for App {
-  // Make this the only example to test all shaders for compile errors.
-  const PRECACHE_SHADERS: bool = true;
+fn get_dom_tree() -> DOMTree<BasicEvent> {
+    let container_style = StyleBuilder::default().case(Case::Ignore).parse_from_str(r#"{
+        "justify-content": "space-between",
+        "background": "rgba(0,0,0,0.3)",
+        "flex-direction": "row",
+        "align-items": "center",
 
-  fn render(
-    &mut self,
-    api: &RenderApi,
-    builder: &mut DisplayListBuilder,
-    txn: &mut Transaction,
-    _: DeviceUintSize,
-    _pipeline_id: PipelineId,
-    _document_id: DocumentId,
-  ) {
-    let mut resources = assets::resources();
-    let box_image_apperance = get_default_apperance("box_image");
-    let box_one_apperance = get_default_apperance("box_one");
-    let box_two_apperance = get_default_apperance("box_two");
-    let window_apperance = get_default_apperance("window");
+        "padding-left": "20px",
+        "padding-right": "20px",
 
-    let mut root = drawer::DrawingNode::new(
-      drawer::DrawingProperties {
-        layout: yoga::Layout::new(0.0.into(), 0.0.into(), 0.0.into(), 0.0.into(), 400.0.into(), 400.0.into()),
-        apperance: window_apperance,
-      },
-      None,
-      None,
-    );
+        "border-top-left-radius": "15px",
+        "border-top-right-radius": "15px",
+        "border-bottom-left-radius": "15px",
+        "border-bottom-right-radius": "15px"
+    }"#).unwrap();
 
-    let children_one = drawer::DrawingNode::new(
-      drawer::DrawingProperties {
-        layout: yoga::Layout::new(
-          25.0.into(),
-          0.0.into(),
-          25.0.into(),
-          0.0.into(),
-          100.0.into(),
-          100.0.into(),
-        ),
-        apperance: box_one_apperance,
-      },
-      None,
-      None,
-    );
+    let item_style = StyleBuilder::default().case(Case::Ignore).parse_from_str(r#"{
+        "justify-content": "space-between",
+        "background": "rgb(255,255,255)",
+        "align-items": "center",
+        "margin-top": "10px",
+        "height": "250px",
+        "width": "250px",
 
-    let children_two = drawer::DrawingNode::new(
-      drawer::DrawingProperties {
-        layout: yoga::Layout::new(
-          150.0.into(),
-          0.0.into(),
-          25.0.into(),
-          0.0.into(),
-          100.0.into(),
-          100.0.into(),
-        ),
-        apperance: box_two_apperance,
-      },
-      Some("children_two".to_string()),
-      None,
-    );
+        "border-top-color": "rgba(255,255,255,0.6)",
+        "border-top-width": 10,
 
-    let image_source = assets::images::ImageSource::bundled("jerk");
-    let image = resources.image_loader.get_image(&image_source).unwrap();
+        "border-top-left-radius": "10px",
+        "border-top-right-radius": "10px",
+        "border-bottom-left-radius": "10px",
+        "border-bottom-right-radius": "10px",
 
-    let children_image = drawer::DrawingNode::new(
-      drawer::DrawingProperties {
-        layout: yoga::Layout::new(
-          270.0.into(),
-          0.0.into(),
-          25.0.into(),
-          0.0.into(),
-          100.0.into(),
-          100.0.into(),
-        ),
-        apperance: box_image_apperance,
-      },
-      None,
-      Some(drawer::NodeType::Image(image.clone())),
-    );
+        "transform": [
+            "rotate(40deg)"
+        ]
+    }"#).unwrap();
 
-    root.push(children_one);
-    root.push(children_two);
-    root.push(children_image);
+    let tree: DOMTree<BasicEvent> = {
+        let mut fragment = DOMTree::default();
+        
+        {
+            let mut parent = fragment.root_mut();
+            {
+                let mut parent = parent.append(DOMNode::from((
+                    DOMTagName::from(KnownElementName::Div),
+                    vec![ DOMAttribute::from((DOMAttributeName::from("name"), DOMAttributeValue::from("body"))) ],
+                    container_style
+                )));
 
-    let mut drawer_rise = drawer::Drawer::new(root);
-    let result = drawer_rise.render(builder.clone());
-    *builder = result.0;
-  }
+                {
+                    let mut first_item = parent.append(DOMNode::from((
+                        DOMTagName::from(KnownElementName::Div),
+                        vec![ DOMAttribute::from((DOMAttributeName::from("name"), DOMAttributeValue::from("item"))) ],
+                        item_style.clone()
+                    )));
+                }
 
-  fn on_event(&mut self, event: winit::WindowEvent, api: &RenderApi, document_id: DocumentId) -> bool {
-    let mut txn = Transaction::new();
+                {
+                    let mut second_item = parent.append(DOMNode::from((
+                        DOMTagName::from(KnownElementName::Div),
+                        vec![ DOMAttribute::from((DOMAttributeName::from("name"), DOMAttributeValue::from("item"))) ],
+                        item_style.clone()
+                    )));
+                }
 
-    if !txn.is_empty() {
-      txn.generate_frame();
-      api.send_transaction(document_id, txn);
-    }
+                {
+                    let mut three_item = parent.append(DOMNode::from((
+                        DOMTagName::from(KnownElementName::Div),
+                        vec![ DOMAttribute::from((DOMAttributeName::from("name"), DOMAttributeValue::from("item"))) ],
+                        item_style.clone()
+                    )));
+                }
+            }
+        }
 
-    false
-  }
+        fragment
+    };
+
+    tree
 }
 
 fn main() {
-  boilerplate::main_wrapper(
-    &mut App {
-      is_init: false,
-    },
-    None,
-  );
+    let props: drawer::PropertiesCollection<DOMNodeId<BasicEvent>> = drawer::PropertiesCollection::default();
+    let dom = get_dom_tree();
+
+    let mut app = App { dom, props };
+
+    boilerplate::main_wrapper(&mut app, None);
+}
+
+impl Example for App {
+    // Make this the only example to test all shaders for compile errors.
+    const PRECACHE_SHADER_FLAGS: ShaderPrecacheFlags = ShaderPrecacheFlags::FULL_COMPILE;
+
+    fn render(
+        &mut self,
+        api: &RenderApi,
+        builder: &mut DisplayListBuilder,
+        txn: &mut Transaction,
+        _: DeviceIntSize,
+        _pipeline_id: PipelineId,
+        _document_id: DocumentId,
+    ) {
+        let mut document = self.dom.document_mut();
+
+        // Recalculate tree & layout
+        {
+            document.build_layout();
+            document.value_mut().reflow_subtree(1000, 500, Direction::LTR);
+        }
+
+        drawer::render_node(
+            &mut self.props,
+            builder,
+            &mut document
+        );
+    }
+
+    fn on_event(
+        &mut self,
+        event: winit::WindowEvent,
+        api: &RenderApi,
+        document_id: DocumentId,
+    ) -> bool {
+        let mut txn = Transaction::new();
+
+        if !txn.is_empty() {
+            txn.generate_frame();
+            api.send_transaction(document_id, txn);
+        }
+
+        false
+    }
 }

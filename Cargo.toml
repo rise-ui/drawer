@@ -4,23 +4,27 @@ version = "0.1.0"
 authors = ["Anton Shramko <antonshramko@yandex.ru>"]
 
 [dependencies]
-jss = { git = "https://github.com/rise-ui/jss-rs" }
-resources = { git = "https://github.com/rise-ui/resources" }
-
-webrender = { rev = "c540acf0990f8a0cbf9429e7085c7cc3b6901add", git = "https://github.com/servo/webrender" }
-yoga = { version = "0.2", features = ["serde_support"] }
-# resources = { path = "../resources" }
-# jss = { path = "../jss-rs" }
+# jss = { git = "https://github.com/rise-ui/jss-rs" }
+# resources = { git = "https://github.com/rise-ui/resources" }
+yoga = { git = "https://github.com/rise-ui/yoga-rs", branch = "enum-case", features = ["serde_support"] }
 enum_extract = "0.1"
-euclid = "0.17.3"
+num-traits = "0.2"
+euclid = "0.19"
 rand = "0.5"
 
+dom = { version = "0.1", path = "../dom-lite" }
+resources = { path = "../resources" }
+jss = { path = "../jss-rs" }
+
 [dev-dependencies]
+dom = { path = "../dom-lite" }
 ordered-float = "0.5.0"
 lazy_static = "1.0"
 env_logger = "0.5"
-app_units = "0.6"
+app_units = "0.7"
 mozangle = "0.1"
+euclid = "0.19"
+gleam = "0.6.2"
 glutin = "0.17"
 winit = "0.16"
-gleam = "0.5"
+rayon = "1"

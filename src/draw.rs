@@ -1,145 +1,148 @@
-use jss::properties::transforms_push_to_builder;
-use resources::images::ImageInfo;
-use utils::random_string;
+use jss::convert::{WebrenderStyles, AppearanceWrapper, WebrenderBackground};
+use jss::types::{PropertiesAppearance};
 
-use common::{
-  PropertiesCollection,
-  DrawingProperties,
-  layout_into_rect,
-  RectBuilder,
-  Draw,
-};
+use common::{PropertiesCollection, RectBuilder};
+use yoga::Layout;
+
+use num_traits::cast::ToPrimitive;
+use dom::node::DOMNodeId;
+use dom::events::*;
+use dom::traits::*;
+use dom::setup::*;
 
 use webrender::api::{
-  LayoutPrimitiveInfo,
-  DisplayListBuilder,
-  ComplexClipRegion,
-  GlyphRasterSpace,
-  ImageRendering,
-  TransformStyle,
-  BorderDetails,
-  BorderWidths,
-  MixBlendMode,
-  BorderRadius,
-  LayoutSize,
-  AlphaType,
-  ClipMode,
+    LayoutPrimitiveInfo,
+    DisplayListBuilder,
+    PropertyBindingKey,
+    ComplexClipRegion,
+    LayoutTransform,
+    TransformStyle,
+    MixBlendMode,
+    RasterSpace,
+    LayoutPoint,
+    LayoutRect,
+    LayoutSize,
+    ClipMode,
 };
 
-#[derive(Clone, Debug)]
-pub enum NodeType {
-  Text(()),
-  Image(ImageInfo),
-  Div,
-}
+pub fn render_node<'a>(
+    builder_props: &mut PropertiesCollection<DOMNodeId<BasicEvent>>,
+    builder: &mut DisplayListBuilder,
 
-#[derive(Clone, Debug)]
-pub struct DrawingNode {
-  pub children: Vec<DrawingNode>,
-  pub style: DrawingProperties,
-  pub node_type: NodeType,
-  pub tag: String,
-}
+    node: &mut DOMArenaRefMut<'a, BasicEvent>,
+) {
+    // Open Stacking Context
 
-impl DrawingNode {
-  pub fn new(style: DrawingProperties, tag: Option<String>, node_type: Option<NodeType>) -> DrawingNode {
-    let node_type = node_type.unwrap_or(NodeType::Div);
-    let tag = tag.unwrap_or(random_string(10));
+    // Get current layout positions & sizes
+    let (dimensions, appearance, layout, context) = {
+        let raw = node.raw.try_value();
 
-    DrawingNode {
-      children: vec![],
-      node_type,
-      style,
-      tag,
-    }
-  }
+        let dimensions = raw
+            .and_then(|node| Some(node.layout_node.get_layout()))
+            .unwrap_or(Layout::new(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
 
-  pub fn push(&mut self, children: DrawingNode) {
-    self.children.push(children);
-  }
-}
+        // @TODO: need handle as link for set in wrapper for convert without copy
+        let appearance = raw
+            .and_then(|node| Some(node.styles.computed.appearance.clone()))
+            .unwrap_or(PropertiesAppearance::default());
 
-impl Draw for DrawingNode {
-  fn draw(
-    &self,
-    builder: DisplayListBuilder,
-    properties: PropertiesCollection,
-  ) -> (DisplayListBuilder, PropertiesCollection) {
-    let apperance = self.style.apperance.clone();
-    let layout = self.style.layout.clone();
+        // @TODO: need handle as link for set in wrapper for convert without copy
+        let layout = raw.and_then(|node| Some(node.styles.computed.layout.clone())).unwrap_or(vec![]);
 
-    let container_size = (layout.width(), layout.height());
-    let primitive = LayoutPrimitiveInfo::new(layout_into_rect(&layout));
+        let context = raw.and_then(|node| Some(node.styles.context.clone())).unwrap_or_default();
+        (dimensions, appearance, layout, context)
+    };
 
-    // Get Transforms and clip that over stacking_context container
-    let transforms = &apperance.transform.unwrap_or(Vec::new());
-    let (mut builder, properties) = transforms_push_to_builder(
-      &primitive,
-      transforms.clone(),
-      container_size.clone(),
-      (self.tag.clone(), 10),
-      properties,
-      builder,
+    // @TODO: need handle as link for set in wrapper for convert without copy
+    let properties = WebrenderStyles::from(AppearanceWrapper {
+        appearance: &appearance,
+        layout: &layout,
+        builder,
+        context,
+    });
+
+    let container_size = (dimensions.width(), dimensions.height());
+    let primitive = LayoutPrimitiveInfo::new(
+        (dimensions.left(), dimensions.top()).by(dimensions.width(), dimensions.height()),
     );
 
+    let node_id = node.id();
+
+    // Push clip for start of transforms display context
+    if let Some(id_index) = node_id.to_u64() {
+        properties.transforms.push_builder(&primitive, (node_id, id_index), builder_props, builder);
+    }
+
+    // Declare stacking context of content
     builder.push_stacking_context(
-      &primitive,
-      None,
-      TransformStyle::Flat,
-      MixBlendMode::Normal,
-      Vec::new(),
-      GlyphRasterSpace::Screen,
+        &primitive,
+        None,
+        TransformStyle::Flat,
+        MixBlendMode::Normal,
+        &Vec::new(),
+        RasterSpace::Screen,
     );
 
     // Define content (inside stacking_context) bounds
-    let content_bounds = (0., 0.).by(layout.width(), layout.height());
+    let content_bounds = (0., 0.).by(dimensions.width(), dimensions.height());
     let content_primitive = LayoutPrimitiveInfo::new(content_bounds.clone());
 
-    let border_radius: BorderRadius = {
-      if let Some(border_radius) = &apperance.border_radius {
-        BorderRadius::from(border_radius.clone())
-      } else {
-        BorderRadius::zero()
-      }
-    };
-
     // Content clip for border-radius
-    let clip = ComplexClipRegion::new(content_bounds.clone(), border_radius.clone(), ClipMode::Clip);
-    let clip_id = builder.define_clip(content_bounds.clone(), vec![clip], None);
-    builder.push_clip_id(clip_id);
+    let rounded_corners_clip = ComplexClipRegion::new(
+        content_bounds.clone(),
+        properties.borders.border_radius.clone(), 
+        ClipMode::Clip
+    );
 
-    // Push background layer
-    if let Some(background) = &self.style.apperance.background {
-      let sizes = (self.style.layout.width(), self.style.layout.height());
-      builder = background.push_to_builder(builder, &content_primitive, sizes);
+    let rounded_corners_clip_id = builder.define_clip(
+        content_bounds.clone(),
+        vec![rounded_corners_clip],
+        None
+    );
+
+    // Push clip of border-radius
+    builder.push_clip_id(rounded_corners_clip_id);
+
+    // Push background
+    match properties.background {
+        WebrenderBackground::Color(color) => {
+            builder.push_rect(&content_primitive, color);
+        },
+
+        WebrenderBackground::Gradient(gradient) => {
+            builder.push_gradient(
+                &content_primitive,
+                gradient,
+                LayoutSize::new(0., 0.),
+                LayoutSize::new(0., 0.)
+            );
+        },
     }
 
-    // Push image
-    match &self.node_type {
-      NodeType::Image(image) => builder.push_image(
+    // Push borders
+    builder.push_border(
         &content_primitive,
-        LayoutSize::new(layout.width(), layout.height()),
-        LayoutSize::zero(),
-        ImageRendering::Auto,
-        AlphaType::Alpha,
-        image.key,
-      ),
-      _ => {}
+        properties.borders.widths,
+        properties.borders.details
+    );
+
+    // Iter childrens for draw
+    let mut next_child_id = node.first_child_id();
+    while let Some(child_id) = next_child_id {
+        {
+            let mut child_ref = node.get_mut(child_id);
+            render_node(builder_props, builder, &mut child_ref);
+        }
+
+        next_child_id = node.get(child_id).next_sibling_id();
     }
 
-    // Push Border
-    if let Some(border_styles) = &self.style.apperance.border_styles {
-      let mut border_details = BorderDetails::from(border_styles.clone());
-      let border_widths = BorderWidths::from(border_styles.clone());
-
-      // Modify rounded for border
-      if let Some(ref mut border) = extract!(BorderDetails::Normal(_), border_details) {
-        border.radius = border_radius.clone();
-      }
-
-      builder.push_border(&content_primitive, border_widths, border_details);
-    }
-
-    (builder, properties)
-  }
+    // CLOSE AREA
+    
+    // Close clip border-radius zone
+    builder.pop_clip_id();
+    // Close stacking context
+    builder.pop_stacking_context();
+    // Close transforms clip zone
+    // builder.pop_clip_id();
 }
