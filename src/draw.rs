@@ -62,20 +62,30 @@ pub fn render_node<'a>(
     });
 
     let container_size = (dimensions.width(), dimensions.height());
-    let primitive = LayoutPrimitiveInfo::new(
-        (dimensions.left(), dimensions.top()).by(dimensions.width(), dimensions.height()),
-    );
 
     let node_id = node.id();
 
     // Push clip for start of transforms display context
+
+    let mut transform_frame_exists = false;
     if let Some(id_index) = node_id.to_u64() {
-        properties.transforms.push_builder(&primitive, (node_id, id_index), builder_props, builder);
+        let frame_primitive = LayoutPrimitiveInfo::new(
+            (dimensions.left(), dimensions.top()).by(dimensions.width(), dimensions.height()),
+        );
+
+        transform_frame_exists = properties.transforms.push_builder(&frame_primitive, (node_id, id_index), builder_props, builder);
     }
+
+    let stacking_primitive = {
+        let left = if transform_frame_exists { 0.0 } else { dimensions.left() };
+        let top = if transform_frame_exists { 0.0 } else { dimensions.top() };
+
+        LayoutPrimitiveInfo::new((left, top).by(dimensions.width(), dimensions.height()))
+    };
 
     // Declare stacking context of content
     builder.push_stacking_context(
-        &primitive,
+        &stacking_primitive,
         None,
         TransformStyle::Flat,
         MixBlendMode::Normal,
@@ -144,5 +154,8 @@ pub fn render_node<'a>(
     // Close stacking context
     builder.pop_stacking_context();
     // Close transforms clip zone
-    // builder.pop_clip_id();
+    if transform_frame_exists {
+        builder.pop_clip_id();
+        builder.pop_reference_frame();
+    }
 }

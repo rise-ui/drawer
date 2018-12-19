@@ -61,7 +61,7 @@ fn get_dom_tree() -> DOMTree<BasicEvent> {
         "height": "250px",
         "width": "250px",
 
-        "border-top-color": "rgba(255,255,255,0.6)",
+        "border-top-color": "rgba(0,0,0,0.6)",
         "border-top-width": 10,
 
         "border-top-left-radius": "10px",
@@ -70,7 +70,7 @@ fn get_dom_tree() -> DOMTree<BasicEvent> {
         "border-bottom-right-radius": "10px",
 
         "transform": [
-            "rotate(40deg)"
+            "rotate(40deg,40deg)"
         ]
     }"#).unwrap();
 
@@ -139,7 +139,7 @@ impl Example for App {
         _: DeviceIntSize,
         _pipeline_id: PipelineId,
         _document_id: DocumentId,
-    ) {
+    ) { 
         let mut document = self.dom.document_mut();
 
         // Recalculate tree & layout
@@ -153,6 +153,8 @@ impl Example for App {
             builder,
             &mut document
         );
+
+        builder.print_display_list();
     }
 
     fn on_event(
