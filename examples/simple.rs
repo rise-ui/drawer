@@ -16,113 +16,45 @@ use dom::events::*;
 use dom::node::*;
 use dom::traits::*;
 use dom::tree::*;
-use dom::types::*;
-use dom::setup::*;
-
-use jss::types::*;
 use yoga::Direction;
 
+use drawer::{Drawer, PropertiesCollection, CursorComputed};
 use jss::webrender;
 
 #[path = "common/boilerplate.rs"]
 mod boilerplate;
 
-use boilerplate::{Example, HandyDandyRectBuilder};
+#[path = "common/utils.rs"]
+mod utils;
+
 use webrender::ShaderPrecacheFlags;
+use boilerplate::Example;
 use webrender::api::*;
 use euclid::vec2;
 
 struct App {
-    pub props: drawer::PropertiesCollection<DOMNodeId<BasicEvent>>,
+    pub props: PropertiesCollection<DOMNodeId<BasicEvent>>,
+    pub hovered: CursorComputed,
     pub dom: DOMTree<BasicEvent>,
 }
 
-fn get_dom_tree() -> DOMTree<BasicEvent> {
-    let container_style = StyleBuilder::default().case(Case::Ignore).parse_from_str(r#"{
-        "justify-content": "space-between",
-        "background": "rgba(0,0,0,0.3)",
-        "flex-direction": "row",
-        "align-items": "center",
-
-        "padding-left": "20px",
-        "padding-right": "20px",
-
-        "border-top-left-radius": "15px",
-        "border-top-right-radius": "15px",
-        "border-bottom-left-radius": "15px",
-        "border-bottom-right-radius": "15px"
-    }"#).unwrap();
-
-    let item_style = StyleBuilder::default().case(Case::Ignore).parse_from_str(r#"{
-        "justify-content": "space-between",
-        "background": "rgb(255,255,255)",
-        "align-items": "center",
-        "margin-top": "10px",
-        "height": "250px",
-        "width": "250px",
-
-        "border-top-color": "rgba(0,0,0,0.6)",
-        "border-top-width": 10,
-
-        "border-top-left-radius": "10px",
-        "border-top-right-radius": "10px",
-        "border-bottom-left-radius": "10px",
-        "border-bottom-right-radius": "10px",
-
-        "transform": [
-            "rotate(40deg,40deg)"
-        ]
-    }"#).unwrap();
-
-    let tree: DOMTree<BasicEvent> = {
-        let mut fragment = DOMTree::default();
-        
-        {
-            let mut parent = fragment.root_mut();
-            {
-                let mut parent = parent.append(DOMNode::from((
-                    DOMTagName::from(KnownElementName::Div),
-                    vec![ DOMAttribute::from((DOMAttributeName::from("name"), DOMAttributeValue::from("body"))) ],
-                    container_style
-                )));
-
-                {
-                    let mut first_item = parent.append(DOMNode::from((
-                        DOMTagName::from(KnownElementName::Div),
-                        vec![ DOMAttribute::from((DOMAttributeName::from("name"), DOMAttributeValue::from("item"))) ],
-                        item_style.clone()
-                    )));
-                }
-
-                {
-                    let mut second_item = parent.append(DOMNode::from((
-                        DOMTagName::from(KnownElementName::Div),
-                        vec![ DOMAttribute::from((DOMAttributeName::from("name"), DOMAttributeValue::from("item"))) ],
-                        item_style.clone()
-                    )));
-                }
-
-                {
-                    let mut three_item = parent.append(DOMNode::from((
-                        DOMTagName::from(KnownElementName::Div),
-                        vec![ DOMAttribute::from((DOMAttributeName::from("name"), DOMAttributeValue::from("item"))) ],
-                        item_style.clone()
-                    )));
-                }
-            }
-        }
-
-        fragment
-    };
-
-    tree
-}
-
 fn main() {
-    let props: drawer::PropertiesCollection<DOMNodeId<BasicEvent>> = drawer::PropertiesCollection::default();
-    let dom = get_dom_tree();
+    let props: PropertiesCollection<DOMNodeId<BasicEvent>> = PropertiesCollection::default();
+    let hovered = CursorComputed::default();
+    let mut dom = utils::get_sample_dom_tree();
 
-    let mut app = App { dom, props };
+    // Recalculate tree & layout
+    {
+        let mut document = dom.document_mut();
+        document.build_layout();
+        document.value_mut().reflow_subtree(1000, 500, Direction::LTR);
+    }
+
+    let mut app = App {
+        hovered,
+        props,
+        dom,
+    };
 
     boilerplate::main_wrapper(&mut app, None);
 }
@@ -139,35 +71,48 @@ impl Example for App {
         _: DeviceIntSize,
         _pipeline_id: PipelineId,
         _document_id: DocumentId,
-    ) { 
+    ) {
+        println!("{:#?}", &self.hovered.ids);
+        
         let mut document = self.dom.document_mut();
+        document.calculate_styles(); // calculate inner styles with new layout props
+        document.value_mut().reflow_subtree(1000, 500, Direction::LTR); // recalculate yoga
 
-        // Recalculate tree & layout
-        {
-            document.build_layout();
-            document.value_mut().reflow_subtree(1000, 500, Direction::LTR);
-        }
-
-        drawer::render_node(
+        let mut list_builder = Drawer::new(
             &mut self.props,
             builder,
-            &mut document
+
+            _pipeline_id,
+            _document_id,
         );
 
-        builder.print_display_list();
+        list_builder.built_node(&mut document);
+        // builder.print_display_list();
     }
 
-    fn on_event(
-        &mut self,
-        event: winit::WindowEvent,
-        api: &RenderApi,
-        document_id: DocumentId,
-    ) -> bool {
+    fn on_event(&mut self, event: winit::WindowEvent, api: &RenderApi, document_id: DocumentId) -> bool {
+        let mut document = self.dom.document_mut();
         let mut txn = Transaction::new();
 
-        if !txn.is_empty() {
+        let mut need_redraw = false;
+
+        match event {
+            winit::WindowEvent::CursorMoved { position, .. } => {
+                let cursor = (position.x as f32, position.y as f32);
+
+                self.hovered.reset();
+                self.hovered.calculate_hover(&mut document, ((0., 0.), (1000., 500.)), cursor);
+                need_redraw = true;
+            },
+
+            _ => {},
+        }
+
+        if !txn.is_empty() || need_redraw {
             txn.generate_frame();
             api.send_transaction(document_id, txn);
+            
+            return true;
         }
 
         false

@@ -21,7 +21,9 @@ struct Notifier {
 
 impl Notifier {
     fn new(events_proxy: winit::EventsLoopProxy) -> Notifier {
-        Notifier { events_proxy }
+        Notifier {
+            events_proxy,
+        }
     }
 }
 
@@ -63,10 +65,7 @@ impl HandyDandyRectBuilder for (i32, i32) {
     }
 
     fn by(&self, w: i32, h: i32) -> LayoutRect {
-        LayoutRect::new(
-            LayoutPoint::new(self.0 as f32, self.1 as f32),
-            LayoutSize::new(w as f32, h as f32),
-        )
+        LayoutRect::new(LayoutPoint::new(self.0 as f32, self.1 as f32), LayoutSize::new(w as f32, h as f32))
     }
 }
 
@@ -91,13 +90,11 @@ pub trait Example {
     fn get_image_handlers(
         &mut self,
         _gl: &gl::Gl,
-    ) -> (
-        Option<Box<webrender::ExternalImageHandler>>,
-        Option<Box<webrender::OutputImageHandler>>,
-    ) {
+    ) -> (Option<Box<webrender::ExternalImageHandler>>, Option<Box<webrender::OutputImageHandler>>) {
         (None, None)
     }
-    fn draw_custom(&mut self, _gl: &gl::Gl) {}
+    fn draw_custom(&mut self, _gl: &gl::Gl) {
+    }
 }
 
 pub fn main_wrapper<E: Example>(example: &mut E, options: Option<webrender::RendererOptions>) {
@@ -120,10 +117,7 @@ pub fn main_wrapper<E: Example>(example: &mut E, options: Option<webrender::Rend
         .with_multitouch()
         .with_transparency(true)
         .with_decorations(false)
-        .with_dimensions(winit::dpi::LogicalSize::new(
-            E::WIDTH as f64,
-            E::HEIGHT as f64,
-        ));
+        .with_dimensions(winit::dpi::LogicalSize::new(E::WIDTH as f64, E::HEIGHT as f64));
     let window = glutin::GlWindow::new(window_builder, context_builder, &events_loop).unwrap();
 
     unsafe {
@@ -157,15 +151,11 @@ pub fn main_wrapper<E: Example>(example: &mut E, options: Option<webrender::Rend
     };
 
     let framebuffer_size = {
-        let size = window
-            .get_inner_size()
-            .unwrap()
-            .to_physical(device_pixel_ratio as f64);
+        let size = window.get_inner_size().unwrap().to_physical(device_pixel_ratio as f64);
         DeviceIntSize::new(size.width as i32, size.height as i32)
     };
     let notifier = Box::new(Notifier::new(events_loop.create_proxy()));
-    let (mut renderer, sender) =
-        webrender::Renderer::new(gl.clone(), notifier, opts, None).unwrap();
+    let (mut renderer, sender) = webrender::Renderer::new(gl.clone(), notifier, opts, None).unwrap();
     let api = sender.create_api();
     let document_id = api.add_document(framebuffer_size, 0);
 
@@ -179,22 +169,13 @@ pub fn main_wrapper<E: Example>(example: &mut E, options: Option<webrender::Rend
         renderer.set_external_image_handler(external_image_handler);
     }
 
-    renderer.toggle_debug_flags(webrender::DebugFlags::TEXTURE_CACHE_DBG);
-
     let epoch = Epoch(0);
     let pipeline_id = PipelineId(0, 0);
     let layout_size = framebuffer_size.to_f32() / euclid::TypedScale::new(device_pixel_ratio);
     let mut builder = DisplayListBuilder::new(pipeline_id, layout_size);
     let mut txn = Transaction::new();
 
-    example.render(
-        &api,
-        &mut builder,
-        &mut txn,
-        framebuffer_size,
-        pipeline_id,
-        document_id,
-    );
+    example.render(&api, &mut builder, &mut txn, framebuffer_size, pipeline_id, document_id);
     txn.set_display_list(
         epoch,
         Some(ColorF::new(0.0, 0.0, 0.0, 0.005)),
@@ -230,34 +211,6 @@ pub fn main_wrapper<E: Example>(example: &mut E, options: Option<webrender::Rend
                 ..
             } => match key {
                 winit::VirtualKeyCode::Escape => return winit::ControlFlow::Break,
-                winit::VirtualKeyCode::P => {
-                    renderer.toggle_debug_flags(webrender::DebugFlags::PROFILER_DBG)
-                }
-                winit::VirtualKeyCode::O => {
-                    renderer.toggle_debug_flags(webrender::DebugFlags::RENDER_TARGET_DBG)
-                }
-                winit::VirtualKeyCode::I => {
-                    renderer.toggle_debug_flags(webrender::DebugFlags::TEXTURE_CACHE_DBG)
-                }
-                winit::VirtualKeyCode::S => {
-                    renderer.toggle_debug_flags(webrender::DebugFlags::COMPACT_PROFILER)
-                }
-                winit::VirtualKeyCode::Q => renderer.toggle_debug_flags(
-                    webrender::DebugFlags::GPU_TIME_QUERIES
-                        | webrender::DebugFlags::GPU_SAMPLE_QUERIES,
-                ),
-                winit::VirtualKeyCode::F => renderer.toggle_debug_flags(
-                    webrender::DebugFlags::NEW_FRAME_INDICATOR
-                        | webrender::DebugFlags::NEW_SCENE_INDICATOR,
-                ),
-                winit::VirtualKeyCode::G => api.send_debug_cmd(
-                    // go through the API so that we reach the render backend
-                    DebugCommand::EnableGpuCacheDebug(
-                        !renderer
-                            .get_debug_flags()
-                            .contains(webrender::DebugFlags::GPU_CACHE_DBG),
-                    ),
-                ),
                 winit::VirtualKeyCode::Key1 => txn.set_window_parameters(
                     framebuffer_size,
                     DeviceIntRect::new(DeviceIntPoint::zero(), framebuffer_size),
@@ -278,29 +231,26 @@ pub fn main_wrapper<E: Example>(example: &mut E, options: Option<webrender::Rend
                 }
                 _ => {
                     let win_event = match global_event {
-                        winit::Event::WindowEvent { event, .. } => event,
+                        winit::Event::WindowEvent {
+                            event,
+                            ..
+                        } => event,
                         _ => unreachable!(),
                     };
                     custom_event = example.on_event(win_event, &api, document_id)
                 }
             },
-            winit::Event::WindowEvent { event, .. } => {
-                custom_event = example.on_event(event, &api, document_id)
-            }
+            winit::Event::WindowEvent {
+                event,
+                ..
+            } => custom_event = example.on_event(event, &api, document_id),
             _ => return winit::ControlFlow::Continue,
         };
 
         if custom_event {
             let mut builder = DisplayListBuilder::new(pipeline_id, layout_size);
 
-            example.render(
-                &api,
-                &mut builder,
-                &mut txn,
-                framebuffer_size,
-                pipeline_id,
-                document_id,
-            );
+            example.render(&api, &mut builder, &mut txn, framebuffer_size, pipeline_id, document_id);
             txn.set_display_list(
                 epoch,
                 Some(ColorF::new(0.0, 0.0, 0.0, 0.005)),
