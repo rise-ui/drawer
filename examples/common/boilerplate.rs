@@ -154,8 +154,6 @@ pub fn main_wrapper<E: Example>(example: &mut E, options: Option<webrender::Rend
         let size = window.get_inner_size().unwrap().to_physical(device_pixel_ratio as f64);
         DeviceIntSize::new(size.width as i32, size.height as i32)
     };
-    
-    println!("FRAMEBUFFER {:#?}", framebuffer_size);
 
     let notifier = Box::new(Notifier::new(events_loop.create_proxy()));
     let (mut renderer, sender) = webrender::Renderer::new(gl.clone(), notifier, opts, None).unwrap();
@@ -177,7 +175,6 @@ pub fn main_wrapper<E: Example>(example: &mut E, options: Option<webrender::Rend
     let layout_size = framebuffer_size.to_f32() / euclid::TypedScale::new(device_pixel_ratio);
     let mut builder = DisplayListBuilder::new(pipeline_id, layout_size);
     let mut txn = Transaction::new();
-    println!("LAYOUT_SIZE {:#?}", layout_size);
 
     example.render(&api, &mut builder, &mut txn, framebuffer_size, pipeline_id, document_id);
 
@@ -266,8 +263,6 @@ pub fn main_wrapper<E: Example>(example: &mut E, options: Option<webrender::Rend
             txn.generate_frame();
         }
         api.send_transaction(document_id, txn);
-
-        println!("framebuffer_size: {:?}", framebuffer_size);
 
         renderer.update();
         renderer.render(framebuffer_size).unwrap();

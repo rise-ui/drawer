@@ -30,7 +30,6 @@ mod utils;
 use webrender::ShaderPrecacheFlags;
 use boilerplate::Example;
 use webrender::api::*;
-use euclid::vec2;
 
 struct App {
     pub props: PropertiesCollection<DOMNodeId<BasicEvent>>,
@@ -72,7 +71,7 @@ impl Example for App {
         _pipeline_id: PipelineId,
         _document_id: DocumentId,
     ) {
-        // println!("{:#?}", &self.hovered.ids);
+        println!("{:#?}", &self.hovered.ids);
         let mut document = self.dom.document_mut();
         document.calculate_styles(); // calculate inner styles with new layout props
         document.value_mut().reflow_subtree(1000, 500, Direction::LTR); // recalculate yoga
