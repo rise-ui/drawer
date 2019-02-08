@@ -1,7 +1,6 @@
 #[macro_use]
 extern crate enum_extract;
 extern crate num_traits;
-extern crate resources;
 extern crate yoga;
 extern crate rand;
 extern crate jss;

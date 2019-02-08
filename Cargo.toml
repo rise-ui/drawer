@@ -4,21 +4,19 @@ version = "0.1.0"
 authors = ["Anton Shramko <antonshramko@yandex.ru>"]
 
 [dependencies]
-# jss = { git = "https://github.com/rise-ui/jss-rs" }
-# resources = { git = "https://github.com/rise-ui/resources" }
 yoga = { git = "https://github.com/rise-ui/yoga-rs", branch = "enum-case", features = ["serde_support"] }
+dom = { git = "https://github.com/rise-ui/dom-lite", branch = "master" }
 hashbrown = { version = "0.1.8", features = ["serde"] }
+jss = { git = "https://github.com/rise-ui/jss-rs" }
 enum_extract = "0.1.1"
 num-traits = "0.2.6"
 euclid = "0.19.5"
 rand = "0.6.4"
 
-dom = { version = "0.1", path = "../dom-lite" }
-resources = { path = "../resources" }
-jss = { path = "../jss-rs" }
+# dom = { version = "0.1", path = "../dom-lite" }
+# jss = { path = "../jss-rs" }
 
 [dev-dependencies]
-dom = { path = "../dom-lite" }
 ordered-float = "1.0.1"
 lazy_static = "1.2.0"
 env_logger = "0.6.0"
